@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>پرو مجازی کفش</title>
+<style>
+  /* Layout: full-bleed camera stage, status chip on top, shoe shelf docked at the bottom. */
+  :root {
+    --ink: #0f1420;
+    --panel: rgba(18, 24, 38, .86);
+    --line: rgba(255, 255, 255, .14);
+    --text: #f3f1ec;
+    --muted: #a9b0c0;
+    --accent: #ffb020;
+    --accent-ink: #1d1400;
+    --font: "Vazirmatn", "IRANSans", "Segoe UI", Tahoma, system-ui, sans-serif;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--ink); color: var(--text);
+    font: 15px/1.7 var(--font);
+    overflow: hidden; -webkit-tap-highlight-color: transparent;
+  }
+  [hidden] { display: none !important; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  button:focus-visible, label:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  #stage { position: fixed; inset: 0; background: #000; }
+  #view { width: 100%; height: 100%; object-fit: cover; display: block; }
+  #cam { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+  #status {
+    position: fixed; top: calc(12px + env(safe-area-inset-top, 0px)); left: 50%;
+    transform: translateX(-50%); max-width: calc(100% - 32px);
+    background: var(--panel); border: 1px solid var(--line); border-radius: 999px;
+    padding: 6px 16px; font-size: 13px; text-align: center;
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  }
+
+  #shelf {
+    position: fixed; inset: auto 0 0 0;
+    padding: 12px max(16px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+    background: linear-gradient(to top, rgba(8, 11, 18, .92) 55%, rgba(8, 11, 18, 0));
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  #shoes { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 6px; scrollbar-width: none; }
+  #shoes::-webkit-scrollbar { display: none; }
+  .shoe {
+    flex: 0 0 auto; width: 92px; padding: 6px 6px 4px;
+    background: var(--panel); border: 2px solid var(--line); border-radius: 14px;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+  }
+  .shoe canvas, .shoe img { width: 76px; height: 46px; object-fit: contain; display: block; }
+  .shoe span { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .shoe[aria-pressed="true"] { border-color: var(--accent); }
+  .shoe[aria-pressed="true"] span { color: var(--text); }
+  .shoe.add { justify-content: center; border-style: dashed; cursor: pointer; }
+  .shoe.add b { font-size: 22px; line-height: 1; color: var(--accent); }
+
+  #actions { display: flex; gap: 10px; justify-content: center; }
+  .btn {
+    border: 1px solid var(--line); background: var(--panel); border-radius: 999px;
+    padding: 8px 18px; min-height: 44px;
+  }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; font-weight: 700; }
+
+  #intro {
+    position: fixed; inset: 0; z-index: 5; background: var(--ink);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; text-align: center;
+    padding: 24px max(24px, env(safe-area-inset-right, 0px)) 24px max(24px, env(safe-area-inset-left, 0px));
+  }
+  #intro h1 { font-size: 28px; margin: 0; line-height: 1.3; }
+  #intro p { margin: 0; color: var(--muted); max-width: 34ch; }
+  #intro ol { margin: 0; padding: 0 20px 0 0; text-align: right; color: var(--muted); max-width: 36ch; }
+  #intro .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 6px; }
+  #err { color: #ff8f7a; max-width: 38ch; }
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <video id="cam" playsinline muted></video>
+  <canvas id="view" width="720" height="1280" aria-label="تصویر دوربین با کفش انتخاب‌شده روی پا"></canvas>
+</div>
+
+<div id="status" role="status" hidden></div>
+
+<div id="shelf" hidden>
+  <div id="shoes" role="group" aria-label="انتخاب کفش"></div>
+  <div id="actions">
+    <button class="btn" id="flip" type="button">چرخش دوربین</button>
+    <button class="btn primary" id="shot" type="button">عکس بگیر</button>
+  </div>
+</div>
+
+<div id="intro">
+  <h1>پرو مجازی کفش</h1>
+  <p>یک کفش انتخاب کنید و آن را زنده روی پای خودتان ببینید؛ حتی وقتی راه می‌روید.</p>
+  <ol>
+    <li>گوشی را به جایی تکیه دهید یا به کسی بدهید.</li>
+    <li>دو سه قدم عقب بروید تا دست‌کم از کمر به پایین در تصویر باشد.</li>
+    <li>کفش را از پایین صفحه عوض کنید.</li>
+  </ol>
+  <div class="row">
+    <button class="btn primary" id="start" type="button">روشن کردن دوربین</button>
+    <button class="btn" id="demo" type="button">نمایش آزمایشی بدون دوربین</button>
+  </div>
+  <div id="err" role="alert"></div>
+</div>
+
+<script type="module">
+const $ = (id) => document.getElementById(id);
+const video = $('cam'), canvas = $('view'), ctx = canvas.getContext('2d');
+const statusEl = $('status'), errEl = $('err');
+
+/* ---------- Shoe catalogue (drawn in code, so no image files are needed) ---------- */
+const SHOES = [
+  { id: 'runner',  name: 'دونده آبی',     upper: '#2f6fed', sole: '#f4f4f0', accent: '#ffd23f', lace: '#ffffff', collar: .40, soleH: .09, laces: true },
+  { id: 'high',    name: 'ساق‌بلند قرمز', upper: '#d7263d', sole: '#fafafa', accent: '#ffffff', lace: '#ffffff', collar: .74, soleH: .07, laces: true },
+  { id: 'classic', name: 'کلاسیک سفید',   upper: '#f2f0ea', sole: '#d9c9a8', accent: '#1f8a5b', lace: '#cfd3d8', collar: .38, soleH: .06, laces: true },
+  { id: 'boot',    name: 'بوت قهوه‌ای',   upper: '#7a4a24', sole: '#2a211b', accent: '#5c3518', lace: '#e0b060', collar: .82, soleH: .11, laces: true },
+  { id: 'loafer',  name: 'کالج مشکی',     upper: '#1c1d22', sole: '#3a2a20', accent: '#b08a4a', lace: '#000000', collar: .30, soleH: .05, laces: false },
+  { id: 'neon',    name: 'نئون',          upper: '#12c4a1', sole: '#22252e', accent: '#ff4fa3', lace: '#f6ff5c', collar: .42, soleH: .10, laces: true },
+];
+let current = SHOES[0];
+
+/* Side view. Unit = foot length. Origin = back-bottom of heel, +x toward toe, +y up the leg. */
+function drawSide(c, s) {
+  if (s.img) {                      // user-supplied photo: side view, toe pointing right
+    const w = 1.26, h = w * s.img.height / s.img.width;
+    c.save(); c.scale(1, -1); c.drawImage(s.img, -0.12, -h + 0.06, w, h); c.restore();
+    return;
+  }
+  const b = -s.soleH, k = s.collar;
+  c.lineJoin = 'round'; c.lineCap = 'round';
+  // upper
+  c.beginPath();
+  c.moveTo(-0.07, 0.02);
+  c.bezierCurveTo(-0.13, 0.14, -0.12, k - 0.08, -0.08, k);
+  c.quadraticCurveTo(-0.02, k + 0.05, 0.05, k - 0.01);
+  c.quadraticCurveTo(0.2, k - 0.06, 0.32, k + 0.03);
+  c.quadraticCurveTo(0.4, k + 0.06, 0.45, Math.min(k, 0.46));
+  c.bezierCurveTo(0.6, 0.3, 0.74, 0.25, 0.86, 0.21);
+  c.bezierCurveTo(1.02, 0.19, 1.13, 0.12, 1.13, 0.02);
+  c.closePath();
+  c.fillStyle = s.upper; c.fill();
+  c.lineWidth = 0.012; c.strokeStyle = 'rgba(0,0,0,.35)'; c.stroke();
+  // toe cap and heel counter
+  c.save(); c.clip(); c.fillStyle = 'rgba(255,255,255,.16)';
+  c.beginPath(); c.ellipse(1.08, 0.04, 0.2, 0.17, 0, 0, 7); c.fill();
+  c.fillStyle = 'rgba(0,0,0,.16)';
+  c.beginPath(); c.ellipse(-0.1, 0.1, 0.14, 0.26, 0, 0, 7); c.fill();
+  // accent band
+  c.strokeStyle = s.accent; c.lineWidth = 0.07;
+  c.beginPath(); c.moveTo(0.1, 0.02); c.quadraticCurveTo(0.34, 0.08, 0.5, 0.36); c.stroke();
+  c.lineWidth = 0.035;
+  c.beginPath(); c.moveTo(0.3, 0.02); c.quadraticCurveTo(0.48, 0.08, 0.62, 0.3); c.stroke();
+  c.restore();
+  // laces
+  if (s.laces) {
+    c.strokeStyle = s.lace; c.lineWidth = 0.022;
+    const top = Math.min(k, 0.46), n = k > 0.6 ? 7 : 5;
+    for (let i = 0; i < n; i++) {
+      const t = i / (n - 1);
+      let x, y;
+      if (k > 0.6 && i >= 4) { x = 0.42 - (i - 3) * 0.03; y = top + (i - 3) * (k - top) / 3.4; }
+      else { const u = k > 0.6 ? i / 3 : t; x = 0.74 - u * 0.3; y = 0.27 + u * (top - 0.28); }
+      c.beginPath(); c.moveTo(x - 0.035, y - 0.05); c.lineTo(x + 0.03, y + 0.03); c.stroke();
+    }
+  } else {
+    c.strokeStyle = s.accent; c.lineWidth = 0.03;
+    c.beginPath(); c.moveTo(0.5, 0.2); c.lineTo(0.62, 0.32); c.stroke();
+  }
+  // sole
+  c.beginPath();
+  c.moveTo(-0.09, 0.03);
+  c.lineTo(1.13, 0.03);
+  c.quadraticCurveTo(1.17, 0.0, 1.12, b * 0.55);
+  c.quadraticCurveTo(1.05, b, 0.95, b);
+  c.lineTo(-0.04, b);
+  c.quadraticCurveTo(-0.12, b, -0.11, b * 0.3);
+  c.closePath();
+  c.fillStyle = s.sole; c.fill();
+  c.lineWidth = 0.01; c.strokeStyle = 'rgba(0,0,0,.4)'; c.stroke();
+}
+
+/* Front view, for a foot pointing at the camera. Origin = ankle, +y toward the toes (0..1), x in -0.5..0.5. */
+function drawFront(c, s) {
+  c.lineJoin = 'round';
+  c.beginPath();
+  c.moveTo(-0.3, 0.02);
+  c.bezierCurveTo(-0.38, 0.4, -0.56, 0.62, -0.5, 0.9);
+  c.bezierCurveTo(-0.44, 1.08, 0.44, 1.08, 0.5, 0.9);
+  c.bezierCurveTo(0.56, 0.62, 0.38, 0.4, 0.3, 0.02);
+  c.closePath();
+  c.fillStyle = s.upper; c.fill();
+  c.lineWidth = 0.02; c.strokeStyle = 'rgba(0,0,0,.35)'; c.stroke();
+  c.save(); c.clip();
+  c.fillStyle = 'rgba(255,255,255,.16)';
+  c.beginPath(); c.ellipse(0, 0.95, 0.5, 0.22, 0, 0, 7); c.fill();
+  c.fillStyle = s.sole; c.fillRect(-0.6, 1 - s.soleH * 0.6, 1.2, 0.2);
+  c.restore();
+  c.fillStyle = 'rgba(0,0,0,.18)';
+  c.beginPath(); c.roundRect(-0.15, 0.0, 0.3, 0.6, 0.08); c.fill();
+  c.strokeStyle = s.laces ? s.lace : s.accent; c.lineWidth = 0.04; c.lineCap = 'round';
+  for (let i = 0; i < (s.laces ? 4 : 1); i++) {
+    const y = 0.14 + i * 0.13;
+    c.beginPath(); c.moveTo(-0.15, y); c.lineTo(0.15, y); c.stroke();
+  }
+}
+
+/* ---------- Shoe shelf ---------- */
+const shelf = $('shoes');
+function addCard(s, before) {
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'shoe'; b.setAttribute('aria-pressed', s === current);
+  let pic;
+  if (s.img) { pic = new Image(); pic.src = s.img.src; pic.alt = ''; }
+  else {
+    pic = document.createElement('canvas'); pic.width = 228; pic.height = 138;
+    const c = pic.getContext('2d');
+    const L = 150, k = Math.min(1, 0.9 / (s.collar + 0.25));
+    c.setTransform(L * k, 0, 0, -L * k, 114 - L * k * 0.5, 126 - s.soleH * 0 - 8);
+    drawSide(c, s);
+  }
+  const label = document.createElement('span'); label.textContent = s.name;
+  b.append(pic, label);
+  b.onclick = () => {
+    current = s;
+    shelf.querySelectorAll('button.shoe').forEach((x) => x.setAttribute('aria-pressed', x === b));
+  };
+  shelf.insertBefore(b, before || null);
+  return b;
+}
+SHOES.forEach((s) => addCard(s));
+
+// Let a shop owner test their own product photo.
+const add = document.createElement('label');
+add.className = 'shoe add';
+add.innerHTML = '<b>+</b><span>عکس کفش من</span><input id="upload" type="file" accept="image/*" hidden>';
+shelf.append(add);
+add.querySelector('input').onchange = (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  const img = new Image();
+  img.onload = () => addCard({ id: 'custom' + Date.now(), name: 'کفش من', img }, add).click();
+  img.src = URL.createObjectURL(f);
+  e.target.value = '';
+};
+
+/* ---------- Foot tracking ---------- */
+const LEGS = [
+  { knee: 25, ankle: 27, heel: 29, toe: 31, front: false },
+  { knee: 26, ankle: 28, heel: 30, toe: 32, front: false },
+];
+let smooth = null, lastSeen = 0;
+
+function track(lm, now) {
+  if (!lm) { if (now - lastSeen > 350) smooth = null; return; }
+  lastSeen = now;
+  if (!smooth) { smooth = lm.map((p) => ({ ...p })); return; }
+  for (let i = 23; i < 33; i++) {
+    const a = smooth[i], b = lm[i];
+    // follow fast moves closely, damp small jitter
+    const k = Math.min(0.9, 0.35 + Math.hypot(b.x - a.x, b.y - a.y) * 14);
+    a.x += (b.x - a.x) * k; a.y += (b.y - a.y) * k; a.z += (b.z - a.z) * k;
+    a.visibility = b.visibility;
+  }
+}
+
+function drawShoes(W, H) {
+  if (!smooth) return 0;
+  const px = (i) => ({ x: smooth[i].x * W, y: smooth[i].y * H, z: smooth[i].z, v: smooth[i].visibility ?? 1 });
+  const feet = LEGS.map((leg) => ({ leg, K: px(leg.knee), A: px(leg.ankle), Hl: px(leg.heel), T: px(leg.toe) }))
+    .filter((f) => f.A.v > 0.5 && (f.Hl.v > 0.4 || f.T.v > 0.4))
+    .sort((a, b) => b.A.z - a.A.z);            // far foot first, near foot on top
+  for (const { leg, K, A, Hl, T } of feet) {
+    const dx = T.x - Hl.x, dy = T.y - Hl.y, d = Math.hypot(dx, dy) || 1;
+    const shin = Math.hypot(K.x - A.x, K.y - A.y);
+    const expected = K.v > 0.4 ? shin * 0.62 : d;        // real foot length from shin length
+    const ratio = d / expected;
+    if (ratio < 0.42) leg.front = true; else if (ratio > 0.52) leg.front = false;
+    ctx.save();
+    if (leg.front && !current.img) {
+      let vx = T.x - A.x, vy = T.y - A.y; const D0 = Math.hypot(vx, vy);
+      if (D0 < expected * 0.15) { vx = 0; vy = 1; } else { vx /= D0; vy /= D0; }
+      const D = Math.max(D0 * 1.1, expected * 0.45), Wd = expected * 0.44;
+      ctx.transform(-vy * Wd, vx * Wd, vx * D, vy * D, A.x, A.y);
+      drawFront(ctx, current);
+    } else {
+      const L = Math.max(d, expected * 0.42), ux = dx / d, uy = dy / d;
+      let nx = uy, ny = -ux;
+      if (nx * (A.x - Hl.x) + ny * (A.y - Hl.y) < 0) { nx = -nx; ny = -ny; }
+      ctx.transform(ux * L, uy * L, nx * L, ny * L, Hl.x, Hl.y);
+      drawSide(ctx, current);
+    }
+    ctx.restore();
+  }
+  return feet.length;
+}
+
+/* ---------- Camera + render loop ---------- */
+let landmarker = null, facing = 'environment', stream = null, demoMode = false, lastT = -1;
+
+async function loadTracker() {
+  const { FilesetResolver, PoseLandmarker } = await import('./vendor/vision_bundle.mjs');
+  const files = await FilesetResolver.forVisionTasks(new URL('./vendor/wasm', location.href).href);
+  const make = (delegate) => PoseLandmarker.createFromOptions(files, {
+    baseOptions: { modelAssetPath: new URL('./vendor/pose_landmarker_lite.task', location.href).href, delegate },
+    runningMode: 'VIDEO', numPoses: 1,
+  });
+  try { landmarker = await make('GPU'); } catch { landmarker = await make('CPU'); }
+}
+
+async function openCamera() {
+  stream?.getTracks().forEach((t) => t.stop());
+  stream = await navigator.mediaDevices.getUserMedia({
+    audio: false,
+    video: { facingMode: { ideal: facing }, width: { ideal: 1280 }, height: { ideal: 720 } },
+  });
+  video.srcObject = stream;
+  await video.play();
+}
+
+function say(text) { statusEl.hidden = !text; statusEl.textContent = text || ''; }
+
+function frame() {
+  requestAnimationFrame(frame);
+  const now = performance.now();
+  if (demoMode) {
+    track(demoPose(now), now);
+    drawDemoBackdrop();
+    drawShoes(canvas.width, canvas.height);
+    return;
+  }
+  if (video.readyState < 2 || !video.videoWidth) return;
+  if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+  }
+  if (landmarker && video.currentTime !== lastT) {
+    lastT = video.currentTime;
+    try { track(landmarker.detectForVideo(video, now).landmarks[0], now); } catch (e) { console.warn(e); }
+  }
+  const W = canvas.width, H = canvas.height;
+  ctx.save();
+  if (facing === 'user') { ctx.translate(W, 0); ctx.scale(-1, 1); }   // selfie camera reads like a mirror
+  ctx.drawImage(video, 0, 0, W, H);
+  const n = drawShoes(W, H);
+  ctx.restore();
+  say(!landmarker ? 'در حال آماده‌سازی ردیاب پا…'
+    : n ? '' : 'پاها پیدا نشد؛ کمی عقب‌تر بایستید تا پاها و زانوها دیده شوند.');
+}
+
+/* ---------- Demo: a walking figure, so the overlay can be seen without a camera ---------- */
+function demoPose(now) {
+  const t = now / 420, W = canvas.width, H = canvas.height, S = H * 0.2;
+  const lm = Array.from({ length: 33 }, () => ({ x: 0.5, y: 0.2, z: 0, visibility: 1 }));
+  const hip = { x: W * 0.5, y: H * 0.36 + Math.abs(Math.sin(t)) * -6 };
+  LEGS.forEach((leg, i) => {
+    const ph = t + i * Math.PI, a = 0.5 * Math.sin(ph), bend = 0.9 * Math.max(0, Math.sin(ph + 1.9));
+    const knee = { x: hip.x + Math.sin(a) * S, y: hip.y + Math.cos(a) * S };
+    const b = a - bend;
+    const ankle = { x: knee.x + Math.sin(b) * S, y: knee.y + Math.cos(b) * S };
+    const f = b * 0.6;                                     // foot pitch follows the shin a little
+    const heel = { x: ankle.x - Math.cos(f) * S * 0.14 + Math.sin(f) * S * 0.2, y: ankle.y + Math.cos(f) * S * 0.2 + Math.sin(f) * S * 0.14 };
+    const toe = { x: heel.x + Math.cos(f) * S * 0.62, y: heel.y - Math.sin(f) * S * 0.62 };
+    const put = (idx, p) => { lm[idx] = { x: p.x / W, y: p.y / H, z: i * 0.1, visibility: 1 }; };
+    put(23 + i, hip); put(leg.knee, knee); put(leg.ankle, ankle); put(leg.heel, heel); put(leg.toe, toe);
+  });
+  return lm;
+}
+function drawDemoBackdrop() {
+  const W = canvas.width, H = canvas.height;
+  ctx.fillStyle = '#c9cfd6'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#9aa3ad'; ctx.fillRect(0, H * 0.79, W, H * 0.21);
+  if (!smooth) return;
+  const P = (i) => [smooth[i].x * W, smooth[i].y * H];
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.strokeStyle = '#3b4a63'; ctx.lineWidth = W * 0.12;
+  ctx.beginPath(); ctx.moveTo(W * 0.5, H * 0.14); ctx.lineTo(...P(23)); ctx.stroke();
+  [1, 0].forEach((i) => {
+    const leg = LEGS[i];
+    ctx.strokeStyle = i ? '#2c3850' : '#34425c'; ctx.lineWidth = W * 0.075;
+    ctx.beginPath(); ctx.moveTo(...P(23 + i)); ctx.lineTo(...P(leg.knee)); ctx.lineTo(...P(leg.ankle)); ctx.stroke();
+    ctx.strokeStyle = '#d9a98a'; ctx.lineWidth = W * 0.05;
+    ctx.beginPath(); ctx.moveTo(...P(leg.ankle)); ctx.lineTo(...P(leg.heel)); ctx.lineTo(...P(leg.toe)); ctx.stroke();
+  });
+}
+
+/* ---------- Controls ---------- */
+function enter() { $('intro').hidden = true; $('shelf').hidden = false; }
+
+$('start').onclick = async () => {
+  errEl.textContent = '';
+  if (!navigator.mediaDevices?.getUserMedia) {
+    errEl.textContent = 'دوربین فقط روی آدرس امن (https) در دسترس است. صفحه را از یک آدرس https باز کنید.';
+    return;
+  }
+  try { await openCamera(); }
+  catch (e) {
+    errEl.textContent = e.name === 'NotAllowedError'
+      ? 'اجازهٔ دوربین داده نشد. از تنظیمات مرورگر دسترسی دوربین را برای این صفحه باز کنید.'
+      : 'دوربین باز نشد: ' + e.message;
+    return;
+  }
+  enter();
+  loadTracker().catch((e) => { console.error(e); say('ردیاب پا بارگذاری نشد. صفحه را دوباره باز کنید.'); landmarker = null; });
+};
+
+$('demo').onclick = () => {
+  demoMode = true; canvas.width = 720; canvas.height = 1280; smooth = null;
+  $('flip').hidden = true; enter(); say('نمایش آزمایشی');
+};
+
+$('flip').onclick = async () => {
+  facing = facing === 'user' ? 'environment' : 'user'; smooth = null;
+  try { await openCamera(); } catch (e) { say('این دوربین در دسترس نیست.'); }
+};
+
+$('shot').onclick = () => {
+  canvas.toBlob((blob) => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'shoe-tryon.jpg';
+    a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  }, 'image/jpeg', 0.92);
+};
+
+if (new URLSearchParams(location.search).has('demo')) $('demo').click();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
