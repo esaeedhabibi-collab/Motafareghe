@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ماه طلا</title>
+<meta name="description" content="انگشتر رو روی دست خودتون ببینید.">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <g id="hand-shape">
+      <rect x="96" y="330" width="98" height="80"/>
+      <rect x="78" y="226" width="134" height="150" rx="46"/>
+      <rect x="80" y="150" width="27" height="122" rx="13.5"/>
+      <rect x="110" y="112" width="30" height="160" rx="15"/>
+      <rect x="143" y="96" width="31" height="176" rx="15.5"/>
+      <rect x="177" y="120" width="30" height="152" rx="15"/>
+      <rect x="-16" y="-104" width="32" height="112" rx="16" transform="translate(206 302) rotate(40)"/>
+    </g>
+  </defs>
+</svg>
+
+<div class="app">
+  <header class="bar">
+    <button class="back" id="btn-back" type="button" aria-label="برگشت" hidden>
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" transform="scale(-1 1) translate(-24 0)"/></svg>
+    </button>
+    <span class="brand">ماه طلا</span>
+  </header>
+
+  <!-- صفحه‌ی ۱: شروع -->
+  <main id="view-start" class="view">
+    <h1>انگشتر رو روی دست خودتون ببینید</h1>
+    <p class="lead">عکس دستتون رو بدید و انگشتر رو روش امتحان کنید.</p>
+    <div class="stage guide" aria-hidden="true">
+      <svg class="hand" viewBox="0 0 300 400"><use href="#hand-shape" fill="var(--guide)" opacity=".16"/></svg>
+      <div class="guide-frame"></div>
+      <div class="chip-on-stage">پشت دستتون رو باز و توی نور روشن بگیرید</div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" id="btn-camera" type="button">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.2a1 1 0 0 0 .8-.4l.9-1.2A1 1 0 0 1 10.2 4h3.6a1 1 0 0 1 .8.4l.9 1.2a1 1 0 0 0 .8.4h1.2A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.5"/></svg>
+        عکس بگیرید
+      </button>
+      <button class="btn btn-ghost" id="btn-gallery" type="button">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M5 17l4.5-4.5 3.5 3.5 2.5-2.5L20 17"/></svg>
+        عکس از گالری
+      </button>
+    </div>
+    <p class="privacy">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8.5 11V8a3.5 3.5 0 0 1 7 0v3"/></svg>
+      <span>عکس از گوشی‌تون بیرون نمیره.</span>
+    </p>
+    <input id="file-gallery" type="file" accept="image/*" hidden>
+    <input id="file-camera" type="file" accept="image/*" capture="environment" hidden>
+  </main>
+
+  <!-- صفحه‌ی دوربین -->
+  <section id="view-camera" class="view" hidden>
+    <div class="cam">
+      <video id="video" playsinline muted></video>
+      <svg class="hand cam-hand" viewBox="0 0 300 400" aria-hidden="true"><use href="#hand-shape" fill="#fff" opacity=".22"/></svg>
+      <div class="guide-frame"></div>
+      <div class="chip-on-stage">پشت دستتون رو توی کادر بگیرید</div>
+    </div>
+    <div class="actions cam-actions">
+      <button class="shutter" id="btn-shot" type="button" aria-label="گرفتن عکس"><span></span></button>
+      <button class="btn btn-ghost" id="btn-cam-close" type="button">بستن دوربین</button>
+    </div>
+  </section>
+
+  <!-- صفحه‌ی امتحان -->
+  <section id="view-try" class="view" hidden>
+    <div class="stage photo">
+      <canvas id="canvas" role="img" aria-label="عکس دست شما با انگشتر"></canvas>
+      <div class="status" id="status" hidden>
+        <span id="status-text"></span>
+        <button class="btn btn-primary btn-small" id="btn-status-retry" type="button" hidden>عکس جدید</button>
+      </div>
+    </div>
+
+    <div id="controls" class="controls" hidden>
+      <p class="notice" id="notice" hidden>کف دستتون پیداست. برای نتیجه‌ی بهتر، پشت دستتون رو نشون بدید و عکس جدید بگیرید.</p>
+      <div>
+        <p class="lbl" id="lbl-finger">انگشت</p>
+        <div class="chips" role="radiogroup" aria-labelledby="lbl-finger">
+          <label class="chip"><input type="radio" name="finger" value="thumb"><span>شست</span></label>
+          <label class="chip"><input type="radio" name="finger" value="index"><span>اشاره</span></label>
+          <label class="chip"><input type="radio" name="finger" value="middle"><span>وسط</span></label>
+          <label class="chip"><input type="radio" name="finger" value="ring" checked><span>حلقه</span></label>
+          <label class="chip"><input type="radio" name="finger" value="pinky"><span>کوچک</span></label>
+        </div>
+      </div>
+
+      <div>
+        <p class="lbl" id="lbl-ring">انگشتر</p>
+        <div class="rings" id="rings" role="radiogroup" aria-labelledby="lbl-ring"></div>
+      </div>
+
+      <div>
+        <p class="lbl" id="lbl-size">اندازه روی تصویر</p>
+        <input class="range" id="size" type="range" min="80" max="130" value="100" aria-labelledby="lbl-size">
+        <div class="range-labels"><span>کوچک‌تر</span><span>بزرگ‌تر</span></div>
+      </div>
+
+      <div>
+        <p class="lbl" id="lbl-shift">جای انگشتر روی انگشت</p>
+        <input class="range" id="shift" type="range" min="-40" max="40" value="0" aria-labelledby="lbl-shift">
+        <div class="range-labels"><span>طرف مچ</span><span>طرف ناخن</span></div>
+      </div>
+
+      <p class="hint">این فقط ظاهر انگشتر رو نشون میده، نه سایز دقیق انگشتتون.</p>
+
+      <div class="actions">
+        <button class="btn btn-primary" id="btn-save" type="button">ذخیره‌ی عکس</button>
+        <button class="btn btn-ghost" id="btn-new" type="button">عکس جدید</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="toast" id="toast" hidden role="status"></div>
+
+<noscript><p class="lead" style="padding:24px">برای دیدن انگشتر روی دست، جاوااسکریپت مرورگرتون باید روشن باشه.</p></noscript>
+
+<script type="module" src="assets/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "rings": [
+    {
+      "id": "ring-01",
+      "name": "سه‌رنگ",
+      "face": "ring-01.png",
+      "thumb": "ring-01-thumb.png",
+      "spanFactor": 1.14,
+      "vStretch": 1.12
+    }
+  ]
+}
