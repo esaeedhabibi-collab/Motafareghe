@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+</head>
+<body>
+<title>امتحان انگشتر</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;800&display=swap">
+<style>
+/* Layout: متن معرفی بالا، بعد دو قاب گوشی کنار هم (قدم ۱ ← قدم ۲) روی زمینه‌ی آرام؛ تنها بخش پررنگ، پیش‌نمایش دست است. */
+:root {
+  --bg: #EEF0F7;
+  --surface: #FFFFFF;
+  --surface-2: #F3F4FB;
+  --fg: #161833;
+  --muted: #565A7C;
+  --line: #D8DBEB;
+  --accent: #2D3190;
+  --on-accent: #FFFFFF;
+  --guide: #2D3190;
+  --stage-a: #F4EFE9;
+  --stage-b: #E3DBD0;
+  --ok: #17724A;
+  --font-body: 'Vazirmatn', Tahoma, system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101220;
+    --surface: #191C30;
+    --surface-2: #222642;
+    --fg: #EDEEFA;
+    --muted: #A5A9CE;
+    --line: #2F3459;
+    --accent: #A0A7FF;
+    --on-accent: #10122B;
+    --guide: #A0A7FF;
+    --stage-a: #2B2824;
+    --stage-b: #1E1C19;
+    --ok: #74DCA6;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #101220;
+  --surface: #191C30;
+  --surface-2: #222642;
+  --fg: #EDEEFA;
+  --muted: #A5A9CE;
+  --line: #2F3459;
+  --accent: #A0A7FF;
+  --on-accent: #10122B;
+  --guide: #A0A7FF;
+  --stage-a: #2B2824;
+  --stage-b: #1E1C19;
+  --ok: #74DCA6;
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.75;
+  direction: rtl;
+  padding-block: 32px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+*, *::before, *::after { box-sizing: border-box; }
+
+.intro { max-width: 640px; margin: 0 auto 32px; display: flex; flex-direction: column; gap: 10px; }
+.eyebrow { font-size: 13px; font-weight: 600; color: var(--muted); }
+.intro h1 { margin: 0; font-size: clamp(26px, 6vw, 34px); font-weight: 800; line-height: 1.4; text-wrap: balance; }
+.intro p { margin: 0; color: var(--muted); max-width: 60ch; }
+.intro .note { color: var(--fg); font-size: 14px; border-top: 1px solid var(--line); padding-top: 12px; margin-top: 4px; }
+
+.phones { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 32px 40px; }
+.col { width: min(100%, 360px); min-width: 0; }
+.cap { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; font-size: 14px; font-weight: 600; }
+.cap b { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--on-accent); font-size: 14px; font-weight: 800; line-height: 1; }
+
+.phone { background: var(--surface); border: 1px solid var(--line); border-radius: 34px; overflow: hidden; }
+.bar { display: flex; align-items: center; gap: 8px; min-height: 56px; padding: 0 20px; border-bottom: 1px solid var(--line); font-weight: 800; font-size: 16px; }
+.bar .back { display: inline-grid; place-items: center; width: 44px; height: 44px; margin-inline-start: -12px; border: 0; background: none; color: var(--fg); border-radius: 50%; cursor: pointer; }
+.bar .brand { letter-spacing: 0; }
+.inner { padding: 20px; display: flex; flex-direction: column; gap: 18px; }
+.inner h2 { margin: 0; font-size: 22px; font-weight: 800; line-height: 1.5; text-wrap: balance; }
+.inner p { margin: 0; color: var(--muted); font-size: 15px; }
+
+.stage { position: relative; border-radius: 24px; overflow: hidden; background: linear-gradient(160deg, var(--stage-a), var(--stage-b)); }
+.stage.s1 { aspect-ratio: 4 / 4.3; }
+.stage.s2 { aspect-ratio: 3 / 4; }
+.stage svg.hand { display: block; width: 100%; height: 100%; }
+.guide-frame { position: absolute; inset: 14px; border: 2px dashed var(--guide); border-radius: 18px; opacity: .6; pointer-events: none; }
+.chip-on-stage { position: absolute; inset-inline: 14px; bottom: 14px; background: rgba(15, 16, 36, .78); color: #fff; border-radius: 12px; padding: 8px 12px; font-size: 13.5px; text-align: center; line-height: 1.6; }
+.sample-tag { position: absolute; top: 12px; inset-inline-start: 12px; background: rgba(15, 16, 36, .72); color: #fff; border-radius: 999px; padding: 2px 10px; font-size: 12px; }
+
+.btn { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; width: 100%; border-radius: 16px; border: 1px solid transparent; font-family: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
+.btn-primary { background: var(--accent); color: var(--on-accent); }
+.btn-ghost { background: var(--surface-2); color: var(--fg); border-color: var(--line); }
+.btn:focus-visible, .bar .back:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.actions { display: flex; flex-direction: column; gap: 10px; }
+.privacy { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13.5px; color: var(--muted); }
+
+.lbl { font-size: 13px; font-weight: 600; color: var(--muted); margin: 0 0 8px; }
+.chips { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.chip { position: relative; }
+.chip input, .rop input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.chip span { display: flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 4px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface-2); font-size: 14px; }
+.chip input:checked + span { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 600; }
+.chip input:focus-visible + span, .rop input:focus-visible + .tile { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.rings { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.rop { position: relative; min-width: 0; }
+.rop .tile { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 2px 8px; border-radius: 16px; border: 1px solid var(--line); background: var(--surface-2); font-size: 12.5px; line-height: 1.5; text-align: center; }
+.rop .tile svg { width: 100%; max-width: 52px; height: auto; }
+.rop input:checked + .tile { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: var(--surface); font-weight: 600; }
+
+.range { width: 100%; accent-color: var(--accent); margin: 0; }
+.range-labels { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); }
+.hint { font-size: 13.5px; color: var(--muted); }
+.toast { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--ok); font-weight: 600; font-size: 14px; min-height: 24px; }
+
+.toast[hidden] { display: none; }
+.icon { width: 20px; height: 20px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<!-- تعریف‌های مشترک تصویر: دست، طلا، نگین -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F7E09A"/><stop offset=".5" stop-color="#D9A736"/><stop offset="1" stop-color="#A87A1C"/>
+    </linearGradient>
+    <linearGradient id="rose" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F4C7B1"/><stop offset=".5" stop-color="#D98F76"/><stop offset="1" stop-color="#B26750"/>
+    </linearGradient>
+    <linearGradient id="gem" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/><stop offset=".55" stop-color="#C3DBFF"/><stop offset="1" stop-color="#8DB3F0"/>
+    </linearGradient>
+    <linearGradient id="skin" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#EFCBAE"/><stop offset="1" stop-color="#D9A683"/>
+    </linearGradient>
+    <g id="hand-shape">
+      <rect x="96" y="330" width="98" height="80"/>
+      <rect x="78" y="226" width="134" height="150" rx="46"/>
+      <rect x="80" y="150" width="27" height="122" rx="13.5"/>
+      <rect x="110" y="112" width="30" height="160" rx="15"/>
+      <rect x="143" y="96" width="31" height="176" rx="15.5"/>
+      <rect x="177" y="120" width="30" height="152" rx="15"/>
+      <rect x="-16" y="-104" width="32" height="112" rx="16" transform="translate(206 302) rotate(40)"/>
+    </g>
+  </defs>
+</svg>
+
+<div class="intro">
+  <span class="eyebrow">موکاپ اولیه، نسخه‌ی گوشی</span>
+  <h1>امتحان انگشتر روی دست</h1>
+  <p>این دو صفحه قدم‌های اصلی سایتن. توی صفحه‌ی دوم می‌تونید انگشت و انگشتر رو عوض کنید و اندازه رو کم و زیاد کنید.</p>
+  <p class="note">دست و انگشترها اینجا نمونه‌ی ساده‌ان. توی سایت واقعی، عکس خود کاربر و عکس واقعی انگشترها می‌نشینه.</p>
+</div>
+
+<div class="phones">
+
+  <!-- صفحه‌ی ۱: شروع -->
+  <section class="col" aria-label="صفحه‌ی اول، شروع">
+    <div class="cap"><b>۱</b><span>شروع</span></div>
+    <div class="phone">
+      <div class="bar"><span class="brand">اسم سایت</span></div>
+      <div class="inner">
+        <h2>انگشتر رو روی دست خودتون ببینید</h2>
+        <p>عکس دستتون رو بدید و انگشتر رو روش امتحان کنید.</p>
+        <div class="stage s1">
+          <svg class="hand" viewBox="0 0 300 400" role="img" aria-label="کادر راهنما برای گذاشتن دست">
+            <use href="#hand-shape" fill="var(--guide)" opacity=".16"/>
+          </svg>
+          <div class="guide-frame"></div>
+          <div class="chip-on-stage">دستتون رو باز و توی نور روشن بگیرید</div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" type="button">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.2a1 1 0 0 0 .8-.4l.9-1.2A1 1 0 0 1 10.2 4h3.6a1 1 0 0 1 .8.4l.9 1.2a1 1 0 0 0 .8.4h1.2A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.5"/></svg>
+            عکس بگیرید
+          </button>
+          <button class="btn btn-ghost" type="button">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M5 17l4.5-4.5 3.5 3.5 2.5-2.5L20 17"/></svg>
+            عکس از گالری
+          </button>
+        </div>
+        <div class="privacy">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8.5 11V8a3.5 3.5 0 0 1 7 0v3"/></svg>
+          <span>عکس از گوشی‌تون بیرون نمیره.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- صفحه‌ی ۲: امتحان -->
+  <section class="col" aria-label="صفحه‌ی دوم، امتحان">
+    <div class="cap"><b>۲</b><span>امتحان</span></div>
+    <div class="phone">
+      <div class="bar">
+        <button class="back" type="button" aria-label="برگشت">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" transform="scale(-1 1) translate(-24 0)"/></svg>
+        </button>
+        <span>امتحان انگشتر</span>
+      </div>
+      <div class="inner">
+        <div class="stage s2">
+          <span class="sample-tag">عکس نمونه</span>
+          <svg class="hand" viewBox="0 0 300 400" role="img" aria-label="نمونه‌ی دست با انگشتر روی انگشت">
+            <use href="#hand-shape" fill="url(#skin)"/>
+            <g fill="#fff" fill-opacity=".38" stroke="#C78F6B" stroke-opacity=".5" stroke-width="1">
+              <rect x="84" y="156" width="19" height="22" rx="8"/>
+              <rect x="115" y="118" width="20" height="24" rx="9"/>
+              <rect x="148.5" y="102" width="21" height="24" rx="9.5"/>
+              <rect x="182" y="126" width="20" height="24" rx="9"/>
+              <rect x="-10" y="-98" width="20" height="24" rx="9" transform="translate(206 302) rotate(40)"/>
+            </g>
+            <g fill="none" stroke="#B9835F" stroke-opacity=".45" stroke-width="1.4" stroke-linecap="round">
+              <path d="M84 232h19M114 238h22M147 238h24M181 236h22"/>
+              <path d="M85 198h17M115 168h20M148 160h22M182 172h20"/>
+            </g>
+            <g id="ringLayer"></g>
+          </svg>
+        </div>
+
+        <div>
+          <p class="lbl" id="lblFinger">انگشت</p>
+          <div class="chips" role="radiogroup" aria-labelledby="lblFinger">
+            <label class="chip"><input type="radio" name="finger" value="thumb"><span>شست</span></label>
+            <label class="chip"><input type="radio" name="finger" value="index"><span>اشاره</span></label>
+            <label class="chip"><input type="radio" name="finger" value="middle"><span>وسط</span></label>
+            <label class="chip"><input type="radio" name="finger" value="ring" checked><span>حلقه</span></label>
+            <label class="chip"><input type="radio" name="finger" value="pinky"><span>کوچک</span></label>
+          </div>
+        </div>
+
+        <div>
+          <p class="lbl" id="lblRing">انگشتر</p>
+          <div class="rings" role="radiogroup" aria-labelledby="lblRing">
+            <label class="rop"><input type="radio" name="ring" value="plain"><span class="tile">
+              <svg viewBox="0 0 56 56" aria-hidden="true"><circle cx="28" cy="31" r="15" fill="none" stroke="url(#gold)" stroke-width="5"/></svg>ساده</span></label>
+            <label class="rop"><input type="radio" name="ring" value="solitaire" checked><span class="tile">
+              <svg viewBox="0 0 56 56" aria-hidden="true"><circle cx="28" cy="33" r="14" fill="none" stroke="url(#gold)" stroke-width="5"/><polygon points="21,14 25,7 31,7 35,14 28,21" fill="url(#gem)" stroke="#6E93CF" stroke-width=".8"/></svg>تک‌نگین</span></label>
+            <label class="rop"><input type="radio" name="ring" value="wide"><span class="tile">
+              <svg viewBox="0 0 56 56" aria-hidden="true"><circle cx="28" cy="31" r="15" fill="none" stroke="url(#gold)" stroke-width="10"/></svg>پهن</span></label>
+            <label class="rop"><input type="radio" name="ring" value="two"><span class="tile">
+              <svg viewBox="0 0 56 56" aria-hidden="true"><path d="M13 31a15 15 0 0 1 30 0" fill="none" stroke="url(#gold)" stroke-width="6"/><path d="M13 31a15 15 0 0 0 30 0" fill="none" stroke="url(#rose)" stroke-width="6"/></svg>دو رنگ</span></label>
+          </div>
+        </div>
+
+        <div>
+          <p class="lbl" id="lblSize">اندازه روی تصویر</p>
+          <input class="range" id="size" type="range" min="80" max="130" value="100" aria-labelledby="lblSize">
+          <div class="range-labels"><span>کوچک‌تر</span><span>بزرگ‌تر</span></div>
+        </div>
+
+        <p class="hint">این فقط ظاهر انگشتر رو نشون میده، نه سایز دقیق انگشتتون.</p>
+
+        <div class="actions">
+          <button class="btn btn-primary" id="save" type="button">ذخیره‌ی عکس</button>
+          <button class="btn btn-ghost" type="button">عکس جدید</button>
+        </div>
+        <div class="toast" id="toast" hidden role="status">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+          <span>عکس ذخیره شد</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function () {
+  // مختصات هر انگشت در دستگاه مختصات خودش؛ شست با چرخش خودش می‌آید.
+  var FINGERS = {
+    thumb:  { t: 'translate(206 302) rotate(40)', x: -16, w: 32, y: -56 },
+    index:  { t: '', x: 177, w: 30, y: 196 },
+    middle: { t: '', x: 143, w: 31, y: 190 },
+    ring:   { t: '', x: 110, w: 30, y: 192 },
+    pinky:  { t: '', x: 80,  w: 27, y: 212 }
+  };
+  var BAND_H = { plain: 8, solitaire: 8, wide: 17, two: 13 };
+  var state = { finger: 'ring', ring: 'solitaire', scale: 1 };
+  var layer = document.getElementById('ringLayer');
+
+  function ringMarkup(style, f, s) {
+    var cx = f.x + f.w / 2, y = f.y, bw = f.w + 6, bh = BAND_H[style], x = cx - bw / 2, out = '';
+    out += '<rect x="' + x + '" y="' + (y - bh / 2 + 2.5) + '" width="' + bw + '" height="' + bh + '" rx="' + (bh / 2) + '" fill="#6B3F22" opacity=".18"/>';
+    if (style === 'two') {
+      out += '<rect x="' + x + '" y="' + (y - bh / 2) + '" width="' + bw + '" height="' + (bh / 2) + '" rx="3" fill="url(#gold)"/>';
+      out += '<rect x="' + x + '" y="' + y + '" width="' + bw + '" height="' + (bh / 2) + '" rx="3" fill="url(#rose)"/>';
+    } else {
+      out += '<rect x="' + x + '" y="' + (y - bh / 2) + '" width="' + bw + '" height="' + bh + '" rx="' + (bh / 2) + '" fill="url(#gold)"/>';
+    }
+    if (style === 'wide') {
+      out += '<rect x="' + (x + 2) + '" y="' + (y - 3) + '" width="' + (bw - 4) + '" height="1" fill="#8A5F14" opacity=".55"/>';
+      out += '<rect x="' + (x + 2) + '" y="' + (y + 3) + '" width="' + (bw - 4) + '" height="1" fill="#8A5F14" opacity=".55"/>';
+    }
+    out += '<rect x="' + (x + 3) + '" y="' + (y - bh / 2 + 1.3) + '" width="' + (bw - 6) + '" height="1.6" rx=".8" fill="#fff" opacity=".6"/>';
+    if (style === 'solitaire') {
+      out += '<polygon points="' + (cx - 9) + ',' + (y - 5) + ' ' + (cx - 5) + ',' + (y - 15) + ' ' + (cx + 5) + ',' + (y - 15) + ' ' + (cx + 9) + ',' + (y - 5) + ' ' + cx + ',' + (y + 4) + '" fill="url(#gem)" stroke="#6E93CF" stroke-width=".8"/>';
+      out += '<path d="M' + (cx - 9) + ' ' + (y - 5) + 'h18M' + (cx - 5) + ' ' + (y - 15) + 'l3 10M' + (cx + 5) + ' ' + (y - 15) + 'l-3 10" stroke="#6E93CF" stroke-width=".7" fill="none"/>';
+    }
+    return '<g transform="translate(' + cx + ' ' + y + ') scale(' + s + ') translate(' + (-cx) + ' ' + (-y) + ')">' + out + '</g>';
+  }
+
+  function render() {
+    var f = FINGERS[state.finger];
+    layer.innerHTML = '<g transform="' + f.t + '">' + ringMarkup(state.ring, f, state.scale) + '</g>';
+  }
+
+  document.querySelectorAll('input[name="finger"]').forEach(function (el) {
+    el.addEventListener('change', function () { state.finger = el.value; render(); });
+  });
+  document.querySelectorAll('input[name="ring"]').forEach(function (el) {
+    el.addEventListener('change', function () { state.ring = el.value; render(); });
+  });
+  document.getElementById('size').addEventListener('input', function (e) {
+    state.scale = Number(e.target.value) / 100; render();
+  });
+
+  var toast = document.getElementById('toast'), timer;
+  document.getElementById('save').addEventListener('click', function () {
+    toast.hidden = false;
+    clearTimeout(timer);
+    timer = setTimeout(function () { toast.hidden = true; }, 2600);
+  });
+
+  render();
+})();
+</script>
+
+</body>
+</html>
