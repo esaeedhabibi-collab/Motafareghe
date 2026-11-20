@@ -9,7 +9,7 @@ let modelPromise = null;
 export function loadHandModel() {
   if (!modelPromise) {
     modelPromise = (async () => {
-      const { FilesetResolver, HandLandmarker } = await import(BASE + 'vision_bundle.mjs');
+      const { FilesetResolver, HandLandmarker } = await import(BASE + 'vision_bundle.js');
       const fileset = await FilesetResolver.forVisionTasks(BASE + 'wasm');
       return HandLandmarker.createFromOptions(fileset, {
         baseOptions: { modelAssetPath: BASE + 'hand_landmarker.task', delegate: 'CPU' },

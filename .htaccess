@@ -1,4 +1,3 @@
-# برای هاست LiteSpeed / Apache: نوع فایل‌های تشخیص دست
+# برای هاست LiteSpeed / Apache: نوع فایل‌های تشخیص دست (اگر این فایل نبود هم سایت کار می‌کند)
 AddType application/wasm .wasm
-AddType text/javascript .mjs
 AddType application/octet-stream .task
