@@ -228,6 +228,7 @@ $('#btn-save').addEventListener('click', save);
     state.rings = data.rings.map((r) => ({
       ...r,
       faceUrl: new URL('assets/rings/' + r.face, location.href).href,
+      fillUrl: r.fill ? new URL('assets/rings/' + r.fill, location.href).href : null,
       thumbUrl: 'assets/rings/' + r.thumb,
     }));
     buildRingTiles(state.rings);

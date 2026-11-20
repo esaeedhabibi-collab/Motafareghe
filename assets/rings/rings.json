@@ -1,12 +1,24 @@
 {
   "rings": [
     {
+      "id": "ring-02",
+      "name": "مشبک",
+      "face": "ring-02.png",
+      "fill": "ring-02-fill.png",
+      "thumb": "ring-02-thumb.png",
+      "mode": "relight",
+      "spanFactor": 1.14,
+      "vStretch": 1.0
+    },
+    {
       "id": "ring-01",
       "name": "سه‌رنگ",
       "face": "ring-01.png",
       "thumb": "ring-01-thumb.png",
       "spanFactor": 1.14,
-      "vStretch": 1.12
+      "vStretch": 1.12,
+      "fill": "ring-01-fill.png",
+      "mode": "relight"
     }
   ]
 }

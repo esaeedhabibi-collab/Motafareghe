@@ -5,7 +5,7 @@
 // mcp = مفصل کنار کف دست، pip = مفصل بعدی. t = جای معمول انگشتر روی این بند (۰ تا ۱).
 // wf = ضریب پهنای انگشت نسبت به عرض کف دست.
 export const FINGERS = {
-  thumb:  { mcp: 2,  pip: 3,  t: 0.55, wf: 1.15, lenW: 1.30, nbr: null,    pf: 1.00 },
+  thumb:  { mcp: 2,  pip: 3,  t: 0.50, wf: 1.15, lenW: 1.30, nbr: null,    pf: 1.00 },
   index:  { mcp: 5,  pip: 6,  t: 0.46, wf: 1.00, lenW: 1.00, nbr: [9],     pf: 0.92 },
   middle: { mcp: 9,  pip: 10, t: 0.46, wf: 1.00, lenW: 1.00, nbr: [5, 13], pf: 0.90 },
   ring:   { mcp: 13, pip: 14, t: 0.46, wf: 0.95, lenW: 1.00, nbr: [9, 17], pf: 0.90 },
@@ -128,16 +128,28 @@ export function fingerGeometry(hand, key, photo) {
     }
   }
   const skinLum = cnt ? sum / cnt : 170;
+  const sideLum = (u0, u1) => {
+    let t = 0, c = 0;
+    for (let u = u0; u <= u1; u += Math.max(1, width / 14)) {
+      for (let v = -0.2 * L; v <= 0.2 * L; v += Math.max(1, L / 10)) {
+        const q = rgbAt(px, cx + n.x * u + d.x * v, cy + n.y * u + d.y * v);
+        if (q) { t += 0.2126 * q[0] + 0.7152 * q[1] + 0.0722 * q[2]; c++; }
+      }
+    }
+    return c ? t / c : null;
+  };
+  const sl = sideLum(-0.45 * width, -0.15 * width), sr = sideLum(0.15 * width, 0.45 * width);
+  const lateral = sl && sr ? clamp(((sr - sl) / (sr + sl)) * 3, -0.6, 0.6) : 0;   // مثبت: سمت راستِ انگشتر روشن‌تر است
   const skinRGB = skinAvg.n ? [skinAvg.r / skinAvg.n, skinAvg.g / skinAvg.n, skinAvg.b / skinAvg.n] : [200, 160, 135];
-  return { key, cx, cy, d, n, L, fingerW: width, prior, measured, skinLum, skinRGB, angle: Math.atan2(d.x, -d.y) };
+  return { key, cx, cy, d, n, L, fingerW: width, prior, measured, skinLum, skinRGB, lateral, angle: Math.atan2(d.x, -d.y) };
 }
 
 // ---------- انگشتر ----------
 export async function loadRing(def) {
-  const img = new Image();
-  img.src = def.faceUrl;
-  await img.decode();
-  return { ...def, img };
+  const load = async (url) => { const im = new Image(); im.src = url; await im.decode(); return im; };
+  const img = await load(def.faceUrl);
+  const fillImg = def.fillUrl ? await load(def.fillUrl) : null;
+  return { ...def, img, fillImg };
 }
 
 function hqResize(src, w, h) {
@@ -150,15 +162,44 @@ function hqResize(src, w, h) {
   }
   const out = document.createElement('canvas');
   out.width = w; out.height = h;
-  const x = out.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(cur, 0, 0, w, h);
+  const x = out.getContext('2d', { willReadFrequently: true }); x.imageSmoothingQuality = 'high'; x.drawImage(cur, 0, 0, w, h);
   return out;
 }
 
-// انگشتر را با اندازه‌ی نهایی آماده می‌کند: کوچک‌کردن باکیفیت، سایه‌روشنِ لبه‌ها (انگشتر دور انگشت می‌پیچد)
-// و هماهنگ‌کردن روشنایی با عکس.
-function buildSprite(ring, W, H, brightness, skinRGB) {
+const smooth = (a, b, v) => { const t = clamp((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+
+// جهت نور در چارچوب خودِ انگشتر (x = عرض انگشت، y = امتداد انگشت به سمت ناخن، z = سمت دوربین).
+// پیش‌فرض: نور از بالا و چپِ عکس (مثل نور پنجره)؛ با روشن‌تر بودن یک سمت انگشت اصلاح می‌شود.
+function lightDir(geom) {
+  const th = geom.angle, lx = -0.32, ly = -0.5;
+  let sx = lx * Math.cos(th) + ly * Math.sin(th);
+  const sy = -lx * Math.sin(th) + ly * Math.cos(th);
+  sx = clamp(sx + geom.lateral, -0.75, 0.75);
+  const sz = Math.sqrt(Math.max(0.12, 1 - sx * sx - sy * sy));
+  const m = Math.hypot(sx, sy, sz);
+  return [sx / m, sy / m, sz / m];
+}
+
+// وضوح: کوچک‌کردنِ عکس انگشتر ریزه‌کاری مشبک را محو می‌کند؛ کمی تیزش می‌کنیم (اگر مرورگر فیلتر بوم را بلد باشد)
+function sharpen(canvas, W, H, amount, radius) {
+  const cx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!('filter' in cx)) return;
+  const b = document.createElement('canvas');
+  b.width = W; b.height = H;
+  const bx = b.getContext('2d', { willReadFrequently: true });
+  bx.filter = `blur(${radius.toFixed(2)}px)`;
+  bx.drawImage(canvas, 0, 0);
+  const a = cx.getImageData(0, 0, W, H), bd = bx.getImageData(0, 0, W, H).data, d = a.data;
+  for (let i = 0; i < d.length; i += 4) {
+    if (d[i + 3] < 24) continue;
+    for (let k = 0; k < 3; k++) d[i + k] = clamp(d[i + k] + amount * (d[i + k] - bd[i + k]), 0, 255);
+  }
+  cx.putImageData(a, 0, 0);
+}
+
+// حالت قدیمی: عکس تخت با کمی تیرگی کنارها (برای انگشتری که فقط عکس تمام‌نور دارد)
+function buildFlatSprite(ring, W, H, brightness, skinRGB) {
   const base = hqResize(ring.img, W, H);
-  // کمی پررنگ‌تر و کنتراست بیشتر: طلا روی پوست زنده‌تر دیده می‌شود (اگر مرورگر فیلتر بوم را بلد باشد)
   const c = document.createElement('canvas');
   c.width = W; c.height = H;
   const x = c.getContext('2d');
@@ -166,7 +207,6 @@ function buildSprite(ring, W, H, brightness, skinRGB) {
   x.drawImage(base, 0, 0);
   x.filter = 'none';
   x.globalCompositeOperation = 'source-atop';
-  // تیره‌شدن دو لبه‌ی کناری
   const g = x.createLinearGradient(0, 0, W, 0);
   g.addColorStop(0, 'rgba(28,14,2,0.48)');
   g.addColorStop(0.08, 'rgba(28,14,2,0.18)');
@@ -175,10 +215,8 @@ function buildSprite(ring, W, H, brightness, skinRGB) {
   g.addColorStop(0.92, 'rgba(28,14,2,0.18)');
   g.addColorStop(1, 'rgba(28,14,2,0.48)');
   x.fillStyle = g; x.fillRect(0, 0, W, H);
-  // فلز رنگ محیط را کمی برمی‌دارد: کمی از رنگ پوست همان عکس
   x.fillStyle = `rgba(${Math.round(skinRGB[0])},${Math.round(skinRGB[1])},${Math.round(skinRGB[2])},0.08)`;
   x.fillRect(0, 0, W, H);
-  // کمی تیرگی بالا و پایین، چون لبه‌ی انگشتر از پوست فاصله ندارد
   const v = x.createLinearGradient(0, 0, 0, H);
   v.addColorStop(0, 'rgba(20,10,0,0.14)'); v.addColorStop(0.14, 'rgba(20,10,0,0)');
   v.addColorStop(0.86, 'rgba(20,10,0,0)'); v.addColorStop(1, 'rgba(20,10,0,0.16)');
@@ -187,30 +225,125 @@ function buildSprite(ring, W, H, brightness, skinRGB) {
   return c;
 }
 
+// حالت اصلی: انگشتر را مثل یک استوانه‌ی دور انگشت دوباره نورپردازی می‌کند.
+// عکس انگشتر (آلبدو) نورِ استودیو را ندارد؛ نور و سایه از روی عکس دستِ کاربر حدس زده می‌شود:
+// جهت نور، روشنایی، رنگ پوست (کنارها پوست را بازتاب می‌دهند)، درخشش و برق لبه‌ها.
+function buildRelitSprite(ring, W, H, geom) {
+  const albedo = hqResize(ring.img, W, H);
+  const actx = albedo.getContext('2d', { willReadFrequently: true });
+  const id = actx.getImageData(0, 0, W, H);
+  const px = id.data;
+  const fill = ring.fillImg ? hqResize(ring.fillImg, W, H).getContext('2d', { willReadFrequently: true }).getImageData(0, 0, W, H).data : null;
+  const Ld = lightDir(geom);
+  const hv = [Ld[0], Ld[1], Ld[2] + 1];
+  const hm = Math.hypot(hv[0], hv[1], hv[2]); hv[0] /= hm; hv[1] /= hm; hv[2] /= hm;
+  const sk = geom.skinRGB.map((v) => v / 255);
+  const exposure = clamp(0.55 + 0.45 * (geom.skinLum / 190), 0.62, 1.12);
+
+  for (let y = 0; y < H; y++) {
+    const v = ((y + 0.5) / H) * 2 - 1;
+    for (let x = 0; x < W; x++) {
+      const i = (y * W + x) * 4;
+      if (px[i + 3] === 0) continue;
+      const u = ((x + 0.5) / W) * 2 - 1;
+      // سطح: استوانه‌ی دور انگشت، کمی برآمده در عرض نوار
+      let nx = u, ny = 0.28 * v, nz = Math.sqrt(Math.max(0.04, 1 - u * u));
+      const nl = Math.hypot(nx, ny, nz); nx /= nl; ny /= nl; nz /= nl;
+      const diff = Math.max(0, nx * Ld[0] + ny * Ld[1] + nz * Ld[2]);
+      const ndh = Math.max(0, nx * hv[0] + ny * hv[1] + nz * hv[2]);
+      const spec = Math.pow(ndh, 56) * 0.5;
+      const edge = smooth(0.5, 1.0, Math.abs(u));            // کنارها که به پشتِ انگشت می‌پیچند
+      let lit = (0.50 + 0.62 * diff) * exposure * (1 - 0.42 * edge);
+      // لبه‌ی نوار: لبه‌ای که رو به نور است برق می‌زند، لبه‌ی مقابل کمی تیره‌تر
+      if (fill) {
+        const fa = fill[i + 3];
+        const up = y >= 2 ? fill[((y - 2) * W + x) * 4 + 3] : 0;
+        const dn = y < H - 2 ? fill[((y + 2) * W + x) * 4 + 3] : 0;
+        if (fa > 60) {
+          const topEdge = Math.max(0, dn - up) / 255, botEdge = Math.max(0, up - dn) / 255;
+          const lu = Math.max(0, -Ld[1]), ld = Math.max(0, Ld[1]);
+          lit *= 1 + topEdge * (0.55 * lu - 0.15 * ld) + botEdge * (0.55 * ld - 0.15 * lu);
+        }
+      }
+      const a0 = px[i] / 255, a1 = px[i + 1] / 255, a2 = px[i + 2] / 255;
+      const k = 0.42 * edge;
+      // طلای سایه‌خورده قهوه‌ای-نارنجی می‌شود، نه زیتونی: آبی و سبز زودتر از قرمز کم می‌شوند
+      const lr = Math.pow(lit, 0.85), lg = lit, lb = Math.pow(lit, 1.3);
+      let r = a0 * lr * (1 - k) + a0 * sk[0] * 1.35 * exposure * k;
+      let g = a1 * lg * (1 - k) + a1 * sk[1] * 1.35 * exposure * k;
+      let b = a2 * lb * (1 - k) + a2 * sk[2] * 1.35 * exposure * k;
+      r += spec * (0.60 + 0.40 * a0); g += spec * (0.52 + 0.40 * a1); b += spec * (0.36 + 0.40 * a2);
+      // طلا رنگ‌های غنی دارد؛ کمی پررنگ‌تر
+      const l = 0.299 * r + 0.587 * g + 0.114 * b;
+      r = l + (r - l) * 1.18; g = (l + (g - l) * 1.18) * 0.955; b = (l + (b - l) * 1.18) * 0.92;
+      px[i] = clamp(r * 255, 0, 255); px[i + 1] = clamp(g * 255, 0, 255); px[i + 2] = clamp(b * 255, 0, 255);
+      // دو سر انگشتر کم‌کم محو می‌شود، چون به پشتِ انگشت می‌پیچد
+      px[i + 3] = px[i + 3] * (1 - 0.85 * smooth(0.93, 1.0, Math.abs(u)));
+    }
+  }
+  actx.putImageData(id, 0, 0);
+  sharpen(albedo, W, H, 1.6, clamp(W / 110, 0.55, 1.2));
+
+  // زیرِ انگشتر: ردپای تیره (سوراخ‌های مشبک تاریک‌تر از پوست دیده می‌شوند)
+  let under = null;
+  if (fill) {
+    under = document.createElement('canvas');
+    under.width = W; under.height = H;
+    const ux = under.getContext('2d');
+    const uid = ux.createImageData(W, H);
+    // از لابه‌لای مشبک، پوستِ سایه‌خورده با بازتاب طلا دیده می‌شود (نه سیاه و نه خاکستری)
+    const goldDark = [165, 112, 40];
+    const dark = geom.skinRGB.map((c, k) => c * 0.18 + goldDark[k] * 0.40);
+    for (let i = 0; i < W * H; i++) {
+      uid.data[i * 4] = dark[0]; uid.data[i * 4 + 1] = dark[1]; uid.data[i * 4 + 2] = dark[2];
+      uid.data[i * 4 + 3] = fill[i * 4 + 3] * 0.86;
+    }
+    ux.putImageData(uid, 0, 0);
+  }
+  return { sprite: albedo, under, light: Ld };
+}
+
 // opt: { scale (۱ = اندازه‌ی خودکار), shift (به واحد طول بند؛ مثبت = سمت ناخن) }
 export function drawRing(ctx, ring, geom, opt) {
   const W = Math.max(8, Math.round(geom.fingerW * ring.spanFactor * opt.scale));
   const H = Math.max(6, Math.round(W * (ring.img.naturalHeight / ring.img.naturalWidth) * ring.vStretch));
-  const brightness = clamp(Math.pow(geom.skinLum / 175, 0.55), 0.72, 1.06);
-  const sk = geom.skinRGB.map((v) => Math.round(v / 8));
-  const key = `${ring.id}|${W}|${H}|${brightness.toFixed(2)}|${sk.join(',')}`;
-  if (!ring.__sprite || ring.__spriteKey !== key) { ring.__sprite = buildSprite(ring, W, H, brightness, geom.skinRGB); ring.__spriteKey = key; }
   const px = geom.cx + geom.d.x * geom.L * opt.shift;
   const py = geom.cy + geom.d.y * geom.L * opt.shift;
+  const relit = ring.mode === 'relight';
+  const sk = geom.skinRGB.map((v) => Math.round(v / 8));
+  const key = relit
+    ? `${ring.id}|${W}|${H}|${Math.round(geom.angle * 14)}|${Math.round(geom.lateral * 10)}|${Math.round(geom.skinLum / 6)}|${sk.join(',')}`
+    : `${ring.id}|${W}|${H}|${Math.round(geom.skinLum / 6)}|${sk.join(',')}`;
+  if (!ring.__built || ring.__builtKey !== key) {
+    if (relit) ring.__built = buildRelitSprite(ring, W, H, geom);
+    else {
+      const brightness = clamp(Math.pow(geom.skinLum / 175, 0.55), 0.72, 1.06);
+      ring.__built = { sprite: buildFlatSprite(ring, W, H, brightness, geom.skinRGB), under: null, light: null };
+    }
+    ring.__builtKey = key;
+  }
+  const { sprite, under, light } = ring.__built;
   ctx.save();
   ctx.translate(px, py);
   ctx.rotate(geom.angle);
-  // سایه‌ی نرمِ تماس: فقط روی خودِ انگشت (کادر انگشت بریده می‌شود تا روی پس‌زمینه سایه نیفتد)
+  // سایه‌ی نرمِ تماس و ردپای تیره: فقط روی خودِ انگشت (کادر انگشت بریده می‌شود تا روی پس‌زمینه سایه نیفتد)
   ctx.save();
   ctx.beginPath();
-  ctx.rect(-geom.fingerW * 0.52, -1.5 * geom.L, geom.fingerW * 1.04, 3 * geom.L);
+  ctx.rect(-geom.fingerW * 0.53, -1.5 * geom.L, geom.fingerW * 1.06, 3 * geom.L);
   ctx.clip();
-  ctx.shadowColor = 'rgba(35,15,5,0.5)';
-  ctx.shadowBlur = Math.max(3, H * 0.3);
-  ctx.drawImage(ring.__sprite, -W / 2, -H / 2);
+  const th = geom.angle;
+  let ox = 0, oy = 0;
+  if (light) {   // سایه از سمت نور دور می‌شود؛ جابه‌جایی سایه در دستگاه مختصاتِ عکس حساب می‌شود
+    const sx = -light[0] * H * 0.20, sy = -light[1] * H * 0.20;
+    ox = sx * Math.cos(th) - sy * Math.sin(th); oy = sx * Math.sin(th) + sy * Math.cos(th);
+  }
+  ctx.shadowColor = relit ? 'rgba(30,12,4,0.58)' : 'rgba(35,15,5,0.5)';
+  ctx.shadowBlur = Math.max(3, H * (relit ? 0.40 : 0.30));
+  ctx.shadowOffsetX = ox; ctx.shadowOffsetY = oy;
+  ctx.drawImage(under || sprite, -W / 2, -H / 2);
   ctx.restore();
   // خودِ انگشتر؛ کمی نرم تا با وضوح عکس هماهنگ شود
-  if ('filter' in ctx) ctx.filter = `blur(${(0.3 + W / 1800).toFixed(2)}px)`;
-  ctx.drawImage(ring.__sprite, -W / 2, -H / 2);
+  if ('filter' in ctx) ctx.filter = `blur(${(0.12 + W / 4000).toFixed(2)}px)`;
+  ctx.drawImage(sprite, -W / 2, -H / 2);
   ctx.restore();
 }
